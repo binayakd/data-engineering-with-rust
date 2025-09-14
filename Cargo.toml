@@ -1,0 +1,18 @@
+[package]
+name = "data-engineering-with-rust"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+polars = { version = "0.50.0", features = ["lazy", "parquet"] }
+tracing = "0.1.41"
+tracing-subscriber = { version = "0.3.20", features = ["fmt", "env-filter", "chrono", "json"] }
+chrono = "0.4.41"
+clap = { version = "4.5.47", features = ["derive"] }
+reqwest = { version = "0.12.23", features = ["json", "blocking"] }
+serde = { version = "1.0.219", features = ["derive"] }
+toml = "0.9.5"
+anyhow = "1.0.99"
+futures = "0.3.31"
+regex = "1.11.2"
+polars-io = "0.50.0"

@@ -25,12 +25,13 @@ pub fn silver_layer_transformations(
     lf = filter_by_year_month(lf, &year_month, timestamp_column);
 
     // write to silver layer
-    let output_dir = format!("{}/silver/{}", output_data_dir, data_id);
+    let output_dir = format!("{}/silver/{}.parquet", output_data_dir, data_id);
     fs::create_dir_all(&output_dir).expect("Failed to create silver data directory");
 
-    let output_file_path = format!("{}/{}.parquet", output_dir, year_month);
+    // let output_file_path = format!("{}/{}.parquet", output_dir, year_month);
 
-    write_output_partitioned(lf, &output_file_path)
+    let partition_columns = vec!["period".to_string()];
+    write_output_partitioned(lf, &output_dir, partition_columns);
 
 }
 
@@ -55,11 +56,8 @@ fn filter_by_year_month(mut lf: LazyFrame, year_month: &str, timestamp_column: &
     lf.with_column(lit(year_month).alias("period"))
 }
 
-fn write_output_partitioned(lf: LazyFrame, output_path: &str) {
-
-
+fn write_output_partitioned(lf: LazyFrame, output_path: &str, partition_columns: Vec<String>) {
     info!("starting sink to file: {output_path}");
-
 
     let sink_options = SinkOptions {
         sync_on_close: SyncOnCloseType::All,
@@ -67,20 +65,24 @@ fn write_output_partitioned(lf: LazyFrame, output_path: &str) {
         mkdir: true
     };
 
-    // let mut file = fs::File::create(output_path).unwrap();
+    let key_exprs = partition_columns.iter()
+        .map(|x| col(x)).collect::<Vec<Expr>>();
 
-    let _result = lf.sink_parquet(
-        SinkTarget::Path(PlPath::new(output_path)),
+    let partition_variant = PartitionVariant::ByKey {
+        key_exprs,
+        include_key: true,
+    };
+
+    let _ = lf.sink_parquet_partitioned(
+        Arc::new(PlPath::new(output_path)),
+        None,
+        partition_variant,
         ParquetWriteOptions::default(),
         None,
-        sink_options
+        sink_options,
+        None,
+        None,
     ).unwrap().collect().unwrap();
 
-    // lf.sink_parquet(output_path, ParquetWriteOptions::default());
-
-    // ParquetWriter::new(&mut file).finish(&mut lf.collect().unwrap()).unwrap();
-
-    // let display = lf.clone().collect().unwrap();
-    // println!("{display}");
 }
 

@@ -16,7 +16,7 @@ pub fn init_logging(log_dir_path: &String) -> PathBuf {
     let log_file_path = log_dir.join(log_file_name);
 
     // Open log file
-    let file = std::fs::File::create(&log_file_path).expect("Failed to create log file");
+    let file = fs::File::create(&log_file_path).expect("Failed to create log file");
 
     // Set up logging subscriber
     let env_filter = EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info"));

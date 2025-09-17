@@ -1,0 +1,92 @@
+use crate::engines::Engine;
+use polars::prelude::*;
+use polars_io::utils::sync_on_close::SyncOnCloseType;
+use tracing::{info};
+use crate::common::config::Config;
+use anyhow::Result;
+
+
+pub struct PolarsEngine;
+
+
+impl Engine for PolarsEngine {
+    fn clean(
+        &self,
+        config: &Config,
+        period: &String,
+        ingest_data_path: &String,
+        output_dir: &String
+    ) -> Result<()>
+    {
+
+        info!("Processing: {ingest_data_path}");
+
+        let args = ScanArgsParquet::default();
+        let mut lf = LazyFrame::scan_parquet(PlPath::new(ingest_data_path), args)?;
+
+        // filter only current period
+        lf = filter_by_period(lf, &period, &config.dataset.timestamp_column)?;
+
+        // add period column
+        let partition_columns = vec!["period".to_string()];
+
+        // save to output
+        write_output_partitioned(lf, &output_dir, partition_columns)?;
+
+        Ok(())
+
+    }
+}
+
+fn filter_by_period(mut lf: LazyFrame, year_month: &str, timestamp_column: &str) -> Result<LazyFrame> {
+    
+    let parts: Vec<&str> = year_month.split('-').collect::<>();
+    let year: i32 = parts[0].parse()?;
+    let month: i32 = parts[1].parse()?;
+
+    lf = lf.filter(
+        col(timestamp_column)
+        .dt()
+        .year()
+        .eq(lit(year))
+        .and(col(timestamp_column).dt().month().eq(lit(month)))
+    );
+
+    lf = lf.with_column(lit(year_month).alias("period"));
+    
+    Ok(lf)
+}
+
+
+fn write_output_partitioned(lf: LazyFrame, output_path: &str, partition_columns: Vec<String>) -> Result<()> {
+    info!("starting sink to file: {output_path}");
+
+    let sink_options = SinkOptions {
+        sync_on_close: SyncOnCloseType::All,
+        maintain_order: true,
+        mkdir: true
+    };
+
+    let key_exprs = partition_columns.iter()
+        .map(|x| col(x)).collect::<Vec<Expr>>();
+
+    let partition_variant = PartitionVariant::ByKey {
+        key_exprs,
+        include_key: true,
+    };
+
+    let _ = lf.sink_parquet_partitioned(
+        Arc::new(PlPath::new(output_path)),
+        None,
+        partition_variant,
+        ParquetWriteOptions::default(),
+        None,
+        sink_options,
+        None,
+        None,
+    )?.collect()?;
+    
+    Ok(())
+
+}
+

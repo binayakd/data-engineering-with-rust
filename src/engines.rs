@@ -39,6 +39,22 @@ pub trait Engine {
             )?;
         }
 
+        // get the min period, to ensure processing is only done for that period or later
+        // in an incremental way
+
+        info!("Step 3: Analytics");
+        let min_period = ingest_data_map.keys()
+            .min()
+            .ok_or(anyhow!("Failed to extract min period"))?;
+
+
+        for period in ingest_data_map.keys() {
+
+        }
+
+
+
+
         Ok(())
     }
 
@@ -112,6 +128,11 @@ pub trait Engine {
         output_dir: &String
     ) -> Result<()>;
 
-    // fn analytics(&self, input: &str, output: &str) -> Result<()>;
+    fn analytics(
+        &self,
+        period: &String,
+        clean_data_path: &String,
+        output_dir: &String
+    ) -> Result<()>;
 }
 

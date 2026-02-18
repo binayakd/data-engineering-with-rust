@@ -36,6 +36,36 @@ impl Engine for PolarsEngine {
         Ok(())
 
     }
+
+    fn analytics(
+        &self,
+        period: &String,
+        clean_data_path: &String,
+        output_dir: &String
+    ) -> Result<()> {
+
+        let args = ScanArgsParquet::default();
+        let mut lf = LazyFrame::scan_parquet(PlPath::new(clean_data_path), args)?;
+
+        // filter only current period
+        lf = lf.filter(
+            col("period").eq(lit(period.to_string()))
+        );
+
+        // extract date from datetime
+        let lf = lf.with_columns(
+            [col("tpep_pickup_datetime").dt().date().alias("date")]
+        );
+
+        // group by date and count rows
+        let grouped_lf = lf
+            .group_by([col("date")])
+            .agg([col("*").count().alias("count")]);
+
+
+
+        Ok(())
+    }
 }
 
 fn filter_by_period(mut lf: LazyFrame, year_month: &str, timestamp_column: &str) -> Result<LazyFrame> {

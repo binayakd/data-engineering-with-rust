@@ -1,0 +1,20 @@
+metadata:
+  name: add-iceberg-support
+  title: Add Apache Iceberg Support
+  description: "Add Apache Iceberg table format support with REST API configuration and Lakekeeper Docker Compose for local testing"
+  created: 2026-03-04
+  status: proposed
+
+artifacts:
+  - id: proposal
+    path: proposal.md
+    type: proposal
+    status: ready
+  - id: design
+    path: design.md
+    type: design
+    status: ready
+  - id: tasks
+    path: tasks.md
+    type: tasks
+    status: ready

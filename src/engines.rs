@@ -47,17 +47,22 @@ pub trait Engine {
             .min()
             .ok_or(anyhow!("Failed to extract min period"))?;
 
-
         for period in ingest_data_map.keys() {
+            // Construct the clean data path for the current period
+            // let clean_data_path = format!("{}/{}", &output_locations.clean_data_dir, period);
 
+            // Call analytics for each period
+            self.analytics(
+                period,
+                &output_locations.clean_data_dir,
+                &output_locations.analytics_data_dir
+            )?;
+
+            info!("Completed analytics for period: {}", period);
         }
-
-
-
 
         Ok(())
     }
-
 
     fn setup(&self, config: &Config) -> Result<OutputLocations> {
 

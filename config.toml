@@ -1,7 +1,7 @@
 
 log_file_dir = "local/logs"
 data_dir = "local/data"
-download_data = true
+download_data = false
 
 [dataset]
 data_id = "yellow_tripdata"

@@ -1,6 +1,7 @@
 mod common;
 mod engines;
 
+use crate::engines::iceberg_writer::IcebergWriterManager;
 use crate::engines::polars_engine::PolarsEngine;
 use crate::engines::Engine;
 use clap::{Parser, Subcommand};
@@ -35,30 +36,32 @@ fn main() -> anyhow::Result<()>  {
     let log_file = common::logging::init_logging(&config.log_file_dir);
     println!("Logging to: {}", log_file.display());
 
+    // Create tokio runtime for async Iceberg operations
+    let rt = tokio::runtime::Runtime::new()?;
+
+    // Initialize Iceberg writer if configured
+    let iceberg_writer = match &config.iceberg {
+        Some(iceberg_config) if iceberg_config.enabled => {
+            println!("Initializing Iceberg catalog...");
+            let writer = rt.block_on(IcebergWriterManager::new(iceberg_config))?;
+            println!("Iceberg catalog initialized successfully");
+            Some(writer)
+        }
+        _ => {
+            println!("Iceberg not configured, using local file output");
+            None
+        }
+    };
+
     let engine: Box<dyn Engine> = match cli.command {
         Commands::Polars => Box::new(PolarsEngine),
         _ => panic!("Unknown engine"),
     };
 
-    engine.run_pipeline(&config)?;
+    // Enter the tokio runtime context so that block_on calls inside
+    // the pipeline (for Iceberg writes) can access the runtime handle
+    let _guard = rt.enter();
+    engine.run_pipeline(&config, iceberg_writer.as_ref())?;
 
     Ok(())
-
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

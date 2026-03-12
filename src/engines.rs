@@ -1,3 +1,4 @@
+pub mod iceberg_writer;
 pub mod polars_engine;
 
 use std::collections::HashMap;
@@ -9,6 +10,7 @@ use regex::Regex;
 use reqwest::blocking::Client;
 use tracing::info;
 use crate::common::config::Config;
+use crate::engines::iceberg_writer::IcebergWriterManager;
 
 
 pub struct OutputLocations {
@@ -20,7 +22,7 @@ pub struct OutputLocations {
 
 pub trait Engine {
 
-    fn run_pipeline(&self, config: &Config) -> Result<()> {
+    fn run_pipeline(&self, config: &Config, iceberg_writer: Option<&IcebergWriterManager>) -> Result<()> {
 
         info!("Step 0: Setup");
         let output_locations = self.setup(config)?;
@@ -35,7 +37,8 @@ pub trait Engine {
                 config,
                 period,
                 ingest_data_path,
-                &output_locations.clean_data_dir
+                &output_locations.clean_data_dir,
+                iceberg_writer,
             )?;
         }
 
@@ -46,9 +49,11 @@ pub trait Engine {
         for period in ingest_data_map.keys() {
             // Call analytics for each period
             self.analytics(
+                config,
                 period,
                 &output_locations.clean_data_dir,
-                &output_locations.analytics_data_dir
+                &output_locations.analytics_data_dir,
+                iceberg_writer,
             )?;
 
             info!("Completed analytics for period: {}", period);
@@ -123,14 +128,16 @@ pub trait Engine {
         config: &Config,
         period: &String,
         ingest_data_path: &String,
-        output_dir: &String
+        output_dir: &String,
+        iceberg_writer: Option<&IcebergWriterManager>,
     ) -> Result<()>;
 
     fn analytics(
         &self,
+        config: &Config,
         period: &String,
         clean_data_path: &String,
-        output_dir: &String
+        output_dir: &String,
+        iceberg_writer: Option<&IcebergWriterManager>,
     ) -> Result<()>;
 }
-

@@ -11,3 +11,9 @@ urls = [
     "https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_2025-02.parquet",
     "https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_2025-03.parquet"
 ]
+
+[iceberg]
+enabled = true
+catalog_uri = "sqlite://local/iceberg/catalog.db"
+warehouse_path = "local/iceberg/warehouse"
+namespace = "default"
